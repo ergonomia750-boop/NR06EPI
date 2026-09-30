@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EPI Interativo — NR-6</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Roboto,system-ui,sans-serif}
+
+body{background:#f5f7fa;min-height:100vh;padding:30px 16px 80px;color:#0f172a;display:flex;justify-content:center}
+.container{max-width:1200px;width:100%;position:relative}
+h1{text-align:center;color:#1e293b;font-size:2rem;font-weight:700;margin-bottom:6px}
+.subtitle{text-align:center;color:#475569;margin-bottom:36px;font-size:1.05rem}
+
+.epi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:22px;margin-bottom:42px}
+.epi-card{appearance:none;border:3px solid rgba(255,255,255,.25);height:190px;border-radius:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:transform .25s ease,box-shadow .25s ease,filter .25s ease;box-shadow:0 10px 20px rgba(0,0,0,.12);color:#fff;font-weight:700;text-shadow:0 2px 4px rgba(0,0,0,.3);padding:12px;text-align:center;position:relative;overflow:hidden;width:100%}
+.epi-card::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 30% 20%,rgba(255,255,255,.18),transparent 60%);pointer-events:none}
+.epi-card:hover{transform:translateY(-5px) scale(1.03);box-shadow:0 20px 32px rgba(0,0,0,.22);filter:brightness(1.05)}
+.epi-card:focus-visible{outline:3px solid #0f172a;outline-offset:4px}
+.epi-card.ativo{outline:3px solid #0f172a;outline-offset:3px;transform:translateY(-3px) scale(1.02)}
+.epi-card .icon{font-size:3.4rem;margin-bottom:8px;filter:drop-shadow(0 3px 5px rgba(0,0,0,.3));position:relative;z-index:1}
+.epi-card .title{font-size:1rem;line-height:1.2;padding:5px 14px;background:rgba(0,0,0,.22);border-radius:30px;backdrop-filter:blur(3px);position:relative;z-index:1}
+.epi-card .risco-tag{position:absolute;top:10px;left:10px;font-size:.65rem;text-transform:uppercase;letter-spacing:.6px;background:rgba(255,255,255,.28);padding:3px 10px;border-radius:20px;backdrop-filter:blur(4px);font-weight:700;z-index:1}
+
+.epi-card[data-risco="mecanico"]{background:linear-gradient(145deg,#2196f3,#1565c0)}
+.epi-card[data-risco="quimico"]{background:linear-gradient(145deg,#ef5350,#c62828)}
+.epi-card[data-risco="biologico"]{background:linear-gradient(145deg,#4caf50,#2e7d32)}
+.epi-card[data-risco="termico"]{background:linear-gradient(145deg,#26c6da,#00838f)}
+.epi-card[data-risco="ocular"]{background:linear-gradient(145deg,#78909c,#37474f)}
+.epi-card[data-risco="auditivo"]{background:linear-gradient(145deg,#5c6bc0,#283593)}
+.epi-card[data-risco="solda"]{background:linear-gradient(145deg,#8d6e63,#3e2723)}
+.epi-card[data-risco="respiratorio"]{background:linear-gradient(145deg,#ef5350,#c62828)}
+
+.caixa-descricao{position:absolute;background:#fff;border-radius:20px;padding:22px 26px;box-shadow:0 25px 50px rgba(15,23,42,.25);border:2px solid var(--cor-risco,#1e88e5);width:360px;max-width:calc(100vw - 32px);opacity:0;transform:translateY(-15px) scale(.92);transform-origin:top center;pointer-events:none;transition:opacity .28s ease,transform .28s ease;z-index:50}
+.caixa-descricao.visivel{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
+.caixa-descricao::before{content:'';position:absolute;top:-11px;left:38px;width:20px;height:20px;background:#fff;border-left:2px solid var(--cor-risco,#1e88e5);border-top:2px solid var(--cor-risco,#1e88e5);transform:rotate(45deg)}
+.caixa-descricao h3{font-size:1.15rem;color:var(--cor-risco,#1e88e5);margin-bottom:10px;display:flex;align-items:center;gap:8px;padding-right:24px}
+.caixa-descricao p{font-size:.94rem;line-height:1.55;color:#334155;margin-bottom:14px}
+.caixa-descricao .meta{display:flex;flex-wrap:wrap;gap:8px;font-size:.78rem;font-weight:600}
+.caixa-descricao .meta span{background:#f1f5f9;padding:4px 12px;border-radius:20px;color:#1e293b;border:1px solid #e2e8f0}
+.caixa-descricao .btn-fechar{position:absolute;top:10px;right:12px;background:transparent;border:none;font-size:1.2rem;color:#94a3b8;cursor:pointer;padding:4px 8px;border-radius:8px;transition:background .2s}
+.caixa-descricao .btn-fechar:hover{background:#f1f5f9;color:#0f172a}
+
+.detalhes-panel{background:#fff;border-radius:28px;padding:32px;box-shadow:0 20px 45px rgba(15,23,42,.10);border:1px solid #e2e8f0;border-top:6px solid var(--cor-risco,#1e88e5);animation:fadeIn .35s ease;margin-top:16px}
+.detalhes-panel.hidden{display:none}
+@keyframes fadeIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.detalhes-header{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:26px;padding-bottom:22px;border-bottom:2px solid #f1f5f9}
+.detalhes-header .icone-grande{font-size:2.6rem;width:76px;height:76px;border-radius:20px;display:flex;align-items:center;justify-content:center;background:#f1f5f9}
+.detalhes-header h2{font-size:1.6rem;color:#0f172a;flex:1;min-width:180px}
+.risco-badge{padding:8px 18px;border-radius:40px;font-weight:700;color:#fff;font-size:.82rem;text-transform:uppercase;letter-spacing:.6px}
+.botoes-topicos{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:24px}
+.btn-topico{background:#f1f5f9;border:1px solid #cbd5e1;padding:11px 20px;border-radius:50px;font-weight:600;font-size:.9rem;color:#1e293b;cursor:pointer;transition:all .2s ease}
+.btn-topico:hover{background:#e2e8f0;transform:translateY(-2px)}
+.btn-topico.ativo{background:#0f172a;color:#fff;border-color:#0f172a}
+.topico-conteudo{background:#f8fafc;border-radius:18px;padding:22px 24px;border-left:6px solid var(--cor-risco,#1e88e5);margin-bottom:22px;line-height:1.7;font-size:.98rem;color:#334155;min-height:150px}
+.topico-conteudo h3{font-size:1.05rem;margin-bottom:10px;color:#0f172a;display:flex;align-items:center;gap:8px}
+.topico-conteudo ul{padding-left:22px;margin-top:6px}.topico-conteudo li{margin-bottom:7px}.topico-conteudo strong{color:#0f172a}
+.btn-video{display:inline-flex;align-items:center;gap:10px;background:#ff0000;color:#fff;padding:14px 26px;border-radius:50px;font-weight:700;font-size:.98rem;text-decoration:none;transition:all .2s ease;box-shadow:0 6px 14px rgba(255,0,0,.28);border:none;cursor:pointer}
+.btn-video:hover{background:#d90000;transform:translateY(-2px);box-shadow:0 10px 20px rgba(255,0,0,.35)}
+.aviso{margin-top:20px;padding:12px 18px;background:#fef9c3;border-left:4px solid #eab308;border-radius:12px;font-size:.86rem;color:#713f12}
+
+@media(max-width:600px){
+  body{padding:22px 12px 60px}
+  h1{font-size:1.5rem}.subtitle{font-size:.92rem;margin-bottom:26px}
+  .epi-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:30px}
+  .epi-card{height:150px;border-radius:18px}.epi-card .icon{font-size:2.4rem}.epi-card .title{font-size:.85rem;padding:4px 10px}.epi-card .risco-tag{font-size:.55rem;padding:2px 7px}
+  .caixa-descricao{width:calc(100vw - 24px);left:0!important}
+  .caixa-descricao::before{left:24px}
+  .detalhes-panel{padding:20px;border-radius:22px}.detalhes-header h2{font-size:1.2rem}.btn-topico{padding:9px 14px;font-size:.8rem}.btn-video{width:100%;justify-content:center}
+}
+</style>
+</head>
+<body>
+<div class="container" id="container">
+  <h1>🧤 EPI Interativo — NR-6</h1>
+  <p class="subtitle">Clique em um EPI para ver sua finalidade, cuidados e informações do CA.</p>
+
+  <div class="epi-grid" id="epiGrid">
+    <button class="epi-card" data-risco="auditivo" data-epi="plug" type="button">
+      <span class="risco-tag">Auditivo</span><div class="icon">🎧</div><div class="title">Protetor Auricular<br>tipo Plug</div>
+    </button>
+    <button class="epi-card" data-risco="mecanico" data-epi="luva" type="button">
+      <span class="risco-tag">Mecânico</span><div class="icon">🧤</div><div class="title">Luva de Raspa</div>
+    </button>
+    <button class="epi-card" data-risco="ocular" data-epi="oculos" type="button">
+      <span class="risco-tag">Ocular</span><div class="icon">🥽</div><div class="title">Óculos de<br>Proteção</div>
+    </button>
+    <button class="epi-card" data-risco="biologico" data-epi="jaleco" type="button">
+      <span class="risco-tag">Biológico</span><div class="icon">🥼</div><div class="title">Jaleco / Vestimenta</div>
+    </button>
+    <button class="epi-card" data-risco="termico" data-epi="avental" type="button">
+      <span class="risco-tag">Térmico</span><div class="icon">🦺</div><div class="title">Avental de Raspa</div>
+    </button>
+    <button class="epi-card" data-risco="mecanico" data-epi="botina" type="button">
+      <span class="risco-tag">Mecânico</span><div class="icon">🥾</div><div class="title">Botina de<br>Segurança</div>
+    </button>
+    <button class="epi-card" data-risco="solda" data-epi="mascara" type="button">
+      <span class="risco-tag">Solda</span><div class="icon">🛡️</div><div class="title">Máscara de<br>Solda</div>
+    </button>
+    <button class="epi-card" data-risco="mecanico" data-epi="perneira" type="button">
+      <span class="risco-tag">Mecânico</span><div class="icon">🦿</div><div class="title">Perneira</div>
+    </button>
+    <button class="epi-card" data-risco="respiratorio" data-epi="respirador" type="button">
+      <span class="risco-tag">Respiratório</span><div class="icon">😷</div><div class="title">Respirador<br>PFF2</div>
+    </button>
+  </div>
+
+  <div class="caixa-descricao" id="caixaDescricao" aria-live="polite">
+    <button class="btn-fechar" id="btnFecharCaixa" type="button" aria-label="Fechar">✕</button>
+    <h3 id="caixaTitulo"></h3>
+    <p id="caixaTexto"></p>
+    <div class="meta" id="caixaMeta"></div>
+  </div>
+
+  <section class="detalhes-panel hidden" id="painel">
+    <div class="detalhes-header">
+      <div class="icone-grande" id="detalheIcone"></div>
+      <h2 id="detalheNome"></h2>
+      <span class="risco-badge" id="detalheRisco"></span>
+    </div>
+
+    <div class="botoes-topicos" id="botoesTopicos">
+      <button class="btn-topico ativo" data-topico="como-usar" type="button">📘 Como usar</button>
+      <button class="btn-topico" data-topico="cuidados" type="button">⚠️ Cuidados</button>
+      <button class="btn-topico" data-topico="higiene" type="button">🧼 Higiene</button>
+      <button class="btn-topico" data-topico="quando-usar" type="button">⏱️ Quando usar</button>
+      <button class="btn-topico" data-topico="ca" type="button">📋 CA</button>
+    </div>
+
+    <div class="topico-conteudo" id="topicoConteudo"></div>
+
+    <a class="btn-video" id="btnVideo" href="#" target="_blank" rel="noopener noreferrer">▶ Assistir tutorial no YouTube</a>
+
+    <div class="aviso">⚠️ O CA e as instruções específicas devem ser conferidos no próprio EPI, na documentação do fabricante e na consulta oficial do Ministério do Trabalho e Emprego.</div>
+  </section>
+</div>
+
+<script>
+const EPIS = {
+  plug:{
+    nome:'Protetor Auricular tipo Plug',icone:'🎧',risco:'Auditivo',cor:'#283593',
+    descricao:'Protetor auditivo de inserção destinado à proteção do sistema auditivo contra níveis de pressão sonora superiores aos estabelecidos na NR-15, conforme o modelo certificado.',
+    norma:'NR-6 — Anexo I, C.1(b)',vida:'Conforme fabricante e condições de uso',youtube:'protetor auricular plug como usar',
+    topicos:{
+      'como-usar':`<h3>📘 Como usar</h3><ul><li>Lave as mãos antes de manipular o protetor.</li><li>Para plug de espuma, comprima o material conforme as instruções do fabricante.</li><li>Posicione corretamente no canal auditivo, sem forçar.</li><li>Verifique se ficou bem ajustado antes de iniciar a exposição ao ruído.</li></ul>`,
+      'cuidados':`<h3>⚠️ Cuidados</h3><ul><li>Não use o protetor se estiver danificado ou contaminado.</li><li>Não compartilhe protetores de uso individual.</li><li>Substitua conforme as orientações do fabricante e as condições de uso.</li><li>O protetor não elimina a necessidade de outras medidas de controle do ruído.</li></ul>`,
+      'higiene':`<h3>🧼 Higiene</h3><ul><li>Higienize os modelos reutilizáveis conforme o manual do fabricante.</li><li>Não aplique produtos químicos que não sejam recomendados.</li><li>Guarde limpo e protegido de sujeira e umidade.</li></ul>`,
+      'quando-usar':`<h3>⏱️ Quando usar</h3><ul><li>Em atividades com exposição a níveis de pressão sonora acima dos critérios aplicáveis.</li><li>Durante o período de exposição ao ruído, conforme orientação do programa de conservação auditiva.</li></ul>`,
+      'ca':`<h3>📋 Certificado de Aprovação</h3><ul><li>Confira se o produto possui <strong>CA válido</strong>.</li><li>Verifique se o CA corresponde ao modelo e à proteção oferecida.</li><li>Consulte as informações oficiais do MTE para confirmar o certificado.</li></ul>`
+    }
+  },
+  luva:{
+    nome:'Luva de Raspa',icone:'🧤',risco:'Mecânico',cor:'#1565c0',
+    descricao:'Luva que pode oferecer proteção das mãos contra agentes abrasivos e escoriantes e, dependendo do modelo certificado, contra outros riscos previstos no CA.',
+    norma:'NR-6 — Anexo I, F.1',vida:'Conforme desgaste, dano e orientação do fabricante',youtube:'luva de raspa EPI como usar',
+    topicos:{
+      'como-usar':`<h3>📘 Como usar</h3><ul><li>Escolha o tamanho adequado.</li><li>Verifique a luva antes de cada uso.</li><li>Vista completamente e ajuste conforme o modelo.</li><li>Use apenas para os riscos contemplados no CA.</li></ul>`,
+      'cuidados':`<h3>⚠️ Cuidados</h3><ul><li>Verifique cortes, furos, rasgos e costuras danificadas.</li><li>Não use a luva de raspa para produtos químicos somente por ela ser uma luva.</li><li>Substitua quando o dano comprometer a proteção.</li></ul>`,
+      'higiene':`<h3>🧼 Higiene</h3><ul><li>Siga as instruções de limpeza do fabricante.</li><li>Mantenha a luva seca e armazenada em local adequado.</li><li>Evite condições que deterioram o couro.</li></ul>`,
+      'quando-usar':`<h3>⏱️ Quando usar</h3><ul><li>Em manuseio de materiais ásperos e abrasivos, quando o modelo for certificado para esse risco.</li><li>Em determinadas atividades de soldagem e movimentação de materiais, conforme o CA e a avaliação de riscos.</li></ul>`,
+      'ca':`<h3>📋 Certificado de Aprovação</h3><ul><li>Confira o CA da luva.</li><li>Verifique quais riscos estão contemplados no certificado.</li></ul>`
+    }
+  },
+  oculos:{
+    nome:'Óculos de Proteção',icone:'🥽',risco:'Ocular',cor:'#37474f',
+    descricao:'Óculos destinados à proteção dos olhos contra riscos específicos, como impactos de partículas volantes e determinadas radiações, conforme a versão certificada.',
+    norma:'NR-6 — Anexo I, B.1',vida:'Até apresentar dano que comprometa a proteção',youtube:'óculos de proteção EPI como usar',
+    topicos:{
+      'como-usar':`<h3>📘 Como usar</h3><ul><li>Escolha o modelo adequado ao risco.</li><li>Ajuste as hastes ou o sistema de retenção corretamente.</li><li>Certifique-se de que as lentes e a armação estejam em boas condições antes do uso.</li></ul>`,
+      'cuidados':`<h3>⚠️ Cuidados</h3><ul><li>Não utilize lentes trincadas ou muito danificadas.</li><li>Não substitua o EPI por óculos comuns.</li><li>Use lente específica quando houver risco de radiação ou outro agente que exija proteção própria.</li></ul>`,
+      'higiene':`<h3>🧼 Higiene</h3><ul><li>Limpe conforme o manual do fabricante.</li><li>Use materiais que não danifiquem as lentes.</li><li>Guarde protegido contra riscos e impactos.</li></ul>`,
+      'quando-usar':`<h3>⏱️ Quando usar</h3><ul><li>Em atividades com risco de partículas volantes.</li><li>Em operações que apresentem o risco previsto na certificação do modelo.</li><li>Para soldagem, utilize a proteção específica da máscara de solda quando necessária.</li></ul>`,
+      'ca':`<h3>📋 Certificado de Aprovação</h3><ul><li>Confira o CA do modelo utilizado.</li><li>Verifique a proteção declarada para o equipamento.</li></ul>`
+    }
+  },
+  jaleco:{
+    nome:'Jaleco / Vestimenta de Proteção',icone:'🥼',risco:'Biológico',cor:'#2e7d32',
+    descricao:'Jalecos comuns não são automaticamente EPI. Para ser utilizado como EPI, o produto deve se enquadrar na proteção prevista no Anexo I da NR-6 e possuir CA quando aplicável. Esta área trata da vestimenta de proteção do tronco.',
+    norma:'NR-6 — Anexo I, E.1',vida:'Conforme fabricante, conservação e condições de uso',youtube:'vestimenta de proteção EPI uso correto',
+    topicos:{
+      'como-usar':`<h3>📘 Como usar</h3><ul><li>Utilize a vestimenta adequada ao risco previsto no CA.</li><li>Vista e feche corretamente conforme as instruções do fabricante.</li><li>Respeite as áreas e procedimentos definidos pela empresa.</li></ul>`,
+      'cuidados':`<h3>⚠️ Cuidados</h3><ul><li>Não utilize uma vestimenta comum como se fosse EPI certificado.</li><li>Retire a vestimenta seguindo o procedimento para evitar contaminação.</li><li>Substitua quando o dano comprometer a proteção.</li></ul>`,
+      'higiene':`<h3>🧼 Higiene</h3><ul><li>Higienize conforme o fabricante e os procedimentos da empresa.</li><li>Quando houver contaminação, siga o procedimento específico de descontaminação.</li><li>Armazene adequadamente após a higienização.</li></ul>`,
+      'quando-usar':`<h3>⏱️ Quando usar</h3><ul><li>Quando a avaliação de risco indicar a necessidade de vestimenta de proteção do tronco e o modelo for adequado.</li><li>Em exposição a agentes biológicos, a proteção deve ser selecionada conforme o risco e não apenas pelo nome “jaleco”.</li></ul>`,
+      'ca':`<h3>📋 Certificado de Aprovação</h3><ul><li>Confira se a peça é realmente EPI e possui CA quando aplicável.</li><li>Verifique a finalidade e os riscos contemplados no certificado.</li></ul>`
+    }
+  },
+  avental:{
+    nome:'Avental de Raspa',icone:'🦺',risco:'Térmico',cor:'#00838f',
+    descricao:'Vestimenta para proteção do tronco que pode ser destinada à proteção contra agentes térmicos ou mecânicos, conforme as características e a certificação do produto.',
+    norma:'NR-6 — Anexo I, E.1',vida:'Conforme fabricante, desgaste e condições de uso',youtube:'avental de raspa EPI solda como usar',
+    topicos:{
+      'como-usar':`<h3>📘 Como usar</h3><ul><li>Vista o avental cobrindo a região indicada pelo fabricante.</li><li>Ajuste corretamente as tiras e fechos.</li><li>Inspecione antes do uso.</li></ul>`,
+      'cuidados':`<h3>⚠️ Cuidados</h3><ul><li>Não utilize se houver dano que comprometa a proteção.</li><li>Mantenha afastado de agentes incompatíveis com o material.</li><li>Use em conjunto com os demais EPIs necessários à atividade.</li></ul>`,
+      'higiene':`<h3>🧼 Higiene</h3><ul><li>Limpe e armazene conforme orientação do fabricante.</li><li>Mantenha seco e protegido de umidade excessiva.</li></ul>`,
+      'quando-usar':`<h3>⏱️ Quando usar</h3><ul><li>Em atividades de soldagem e trabalho a quente quando o CA for adequado.</li><li>Quando houver risco térmico ou mecânico compatível com a certificação.</li></ul>`,
+      'ca':`<h3>📋 Certificado de Aprovação</h3><ul><li>Confira o CA e os riscos contemplados pelo equipamento.</li></ul>`
+    }
+  },
+  botina:{
+    nome:'Botina de Segurança',icone:'🥾',risco:'Mecânico',cor:'#1565c0',
+    descricao:'Calçado de segurança destinado à proteção dos pés contra riscos específicos, como impacto de objetos sobre os artelhos, além de outras proteções previstas no modelo certificado.',
+    norma:'NR-6 — Anexo I, G.1',vida:'Conforme desgaste, conservação e orientação do fabricante',youtube:'botina de segurança EPI como usar',
+    topicos:{
+      'como-usar':`<h3>📘 Como usar</h3><ul><li>Escolha o tamanho adequado.</li><li>Use o calçado fechado e corretamente ajustado.</li><li>Inspecione o solado, cabedal e demais componentes antes do trabalho.</li></ul>`,
+      'cuidados':`<h3>⚠️ Cuidados</h3><ul><li>Não utilize calçado danificado.</li><li>Observe desgaste excessivo do solado ou de componentes de proteção.</li><li>Não faça alterações que comprometam as características certificadas.</li></ul>`,
+      'higiene':`<h3>🧼 Higiene</h3><ul><li>Mantenha o calçado limpo e seco.</li><li>Realize a limpeza conforme a orientação do fabricante.</li><li>Armazene em local ventilado.</li></ul>`,
+      'quando-usar':`<h3>⏱️ Quando usar</h3><ul><li>Em atividades com riscos aos pés contemplados no CA.</li><li>Em áreas industriais, obras e movimentação de materiais, conforme a avaliação de riscos.</li></ul>`,
+      'ca':`<h3>📋 Certificado de Aprovação</h3><ul><li>Confira o CA do calçado.</li><li>Verifique se a proteção atende ao risco da atividade.</li></ul>`
+    }
+  },
+  mascara:{
+    nome:'Máscara de Solda',icone:'🛡️',risco:'Solda',cor:'#3e2723',
+    descricao:'Máscara de solda para proteção dos olhos e da face contra impactos de partículas volantes, radiação ultravioleta, radiação infravermelha e luminosidade intensa, conforme a NR-6.',
+    norma:'NR-6 — Anexo I, B.3',vida:'Conforme conservação, lente e orientação do fabricante',youtube:'máscara de solda EPI como usar',
+    topicos:{
+      'como-usar':`<h3>📘 Como usar</h3><ul><li>Ajuste a máscara corretamente à cabeça.</li><li>Use filtro/lente compatível com o processo de soldagem.</li><li>Mantenha a proteção posicionada corretamente durante a operação.</li></ul>`,
+      'cuidados':`<h3>⚠️ Cuidados</h3><ul><li>Não utilize lente trincada ou inadequada.</li><li>Verifique a estrutura e o sistema de fixação antes do uso.</li><li>Utilize os demais EPIs necessários conforme a avaliação de riscos.</li></ul>`,
+      'higiene':`<h3>🧼 Higiene</h3><ul><li>Limpe conforme as instruções do fabricante.</li><li>Mantenha a lente livre de sujeira que prejudique a visão.</li></ul>`,
+      'quando-usar':`<h3>⏱️ Quando usar</h3><ul><li>Durante operações de soldagem que apresentem os riscos previstos na certificação.</li><li>O filtro e a lente devem ser apropriados ao processo realizado.</li></ul>`,
+      'ca':`<h3>📋 Certificado de Aprovação</h3><ul><li>Confira o CA do equipamento.</li><li>Verifique se o modelo é apropriado ao processo de soldagem realizado.</li></ul>`
+    }
+  },
+  perneira:{
+    nome:'Perneira',icone:'🦿',risco:'Mecânico',cor:'#1565c0',
+    descricao:'Perneira destinada à proteção da perna contra riscos específicos, incluindo agentes abrasivos e escoriantes, cortantes e perfurantes, conforme o modelo certificado.',
+    norma:'NR-6 — Anexo I, G.3',vida:'Conforme desgaste, dano e orientação do fabricante',youtube:'perneira EPI como usar',
+    topicos:{
+      'como-usar':`<h3>📘 Como usar</h3><ul><li>Posicione a perneira cobrindo a região indicada pelo fabricante.</li><li>Ajuste corretamente os fechos.</li><li>Verifique se permaneceu firme antes de iniciar a atividade.</li></ul>`,
+      'cuidados':`<h3>⚠️ Cuidados</h3><ul><li>Verifique cortes, furos e desgaste.</li><li>Substitua quando o dano comprometer a proteção.</li></ul>`,
+      'higiene':`<h3>🧼 Higiene</h3><ul><li>Limpe conforme a orientação do fabricante.</li><li>Armazene em local seco e protegido.</li></ul>`,
+      'quando-usar':`<h3>⏱️ Quando usar</h3><ul><li>Em atividades com riscos às pernas contemplados no CA.</li><li>Em trabalhos como roçada, corte ou contato com agentes abrasivos, quando o modelo for adequado.</li></ul>`,
+      'ca':`<h3>📋 Certificado de Aprovação</h3><ul><li>Verifique o CA e a finalidade do equipamento.</li></ul>`
+    }
+  },
+  respirador:{
+    nome:'Respirador PFF2',icone:'😷',risco:'Respiratório',cor:'#c62828',
+    descricao:'Peça semifacial filtrante para partículas PFF2, destinada à proteção das vias respiratórias contra poeiras, névoas e fumos, conforme a classificação prevista na NR-6.',
+    norma:'NR-6 — Anexo I, D.1(b)',vida:'Conforme fabricante, condições de uso e programa de proteção respiratória',youtube:'respirador PFF2 colocação correta',
+    topicos:{
+      'como-usar':`<h3>📘 Como usar</h3><ul><li>Higienize as mãos antes da colocação.</li><li>Posicione cobrindo completamente nariz, boca e queixo.</li><li>Ajuste os tirantes conforme o modelo.</li><li>Faça a verificação de vedação indicada pelo fabricante.</li></ul>`,
+      'cuidados':`<h3>⚠️ Cuidados</h3><ul><li>Não utilize se estiver danificado ou sem vedação adequada.</li><li>Não utilize uma PFF2 para gases e vapores; para esses agentes são necessários filtros apropriados.</li><li>Barreira de pelos na área de vedação pode comprometer o ajuste.</li><li>Substitua de acordo com as condições de uso e orientação do fabricante.</li></ul>`,
+      'higiene':`<h3>🧼 Higiene</h3><ul><li>Siga exatamente as instruções do fabricante para armazenamento e eventual reutilização.</li><li>Não lave ou altere a peça sem previsão do fabricante.</li><li>Armazene em local limpo e seco.</li></ul>`,
+      'quando-usar':`<h3>⏱️ Quando usar</h3><ul><li>Em atividades com poeiras, névoas e fumos para os quais a PFF2 seja indicada.</li><li>Selecione a proteção respiratória por meio da avaliação do risco e dos procedimentos de proteção respiratória da empresa.</li></ul>`,
+      'ca':`<h3>📋 Certificado de Aprovação</h3><ul><li>Confira o CA e a classificação do respirador.</li><li>Verifique se a PFF2 é adequada ao contaminante presente.</li></ul>`
+    }
+  }
+};
+
+let epiAtual=null;
+const container=document.getElementById('container');
+const caixa=document.getElementById('caixaDescricao');
+const painel=document.getElementById('painel');
+
+function mostrarTopico(topico){
+  if(!epiAtual)return;
+  const epi=EPIS[epiAtual];
+  if(!epi?.topicos?.[topico])return;
+  document.getElementById('topicoConteudo').innerHTML=epi.topicos[topico];
+  document.querySelectorAll('.btn-topico').forEach(btn=>btn.classList.toggle('ativo',btn.dataset.topico===topico));
+}
+
+function posicionarCaixa(card){
+  const rect=card.getBoundingClientRect();
+  const base=container.getBoundingClientRect();
+  let left=rect.left-base.left;
+  let top=rect.bottom-base.top+15;
+  const largura=360;
+  const margem=8;
+  const disponivel=base.width;
+  if(left+largura>disponivel-margem)left=Math.max(margem,disponivel-largura-margem);
+  if(left<margem)left=margem;
+  caixa.style.left=left+'px';
+  caixa.style.top=top+'px';
+}
+
+function abrirEPI(event,id){
+  const epi=EPIS[id];
+  if(!epi)return;
+  epiAtual=id;
+  document.querySelectorAll('.epi-card').forEach(card=>card.classList.remove('ativo'));
+  const card=event.currentTarget;
+  card.classList.add('ativo');
+
+  caixa.style.setProperty('--cor-risco',epi.cor);
+  document.getElementById('caixaTitulo').textContent=epi.icone+' '+epi.nome;
+  document.getElementById('caixaTexto').textContent=epi.descricao;
+  document.getElementById('caixaMeta').innerHTML=`<span>${epi.norma}</span><span>${epi.risco}</span><span>${epi.vida}</span>`;
+  posicionarCaixa(card);
+  caixa.classList.add('visivel');
+
+  painel.style.setProperty('--cor-risco',epi.cor);
+  document.getElementById('detalheIcone').textContent=epi.icone;
+  document.getElementById('detalheNome').textContent=epi.nome;
+  const badge=document.getElementById('detalheRisco');
+  badge.textContent=epi.risco;
+  badge.style.background=epi.cor;
+  document.getElementById('btnVideo').href='https://www.youtube.com/results?search_query='+encodeURIComponent(epi.youtube);
+  painel.classList.remove('hidden');
+  mostrarTopico('como-usar');
+
+  if(window.innerWidth<=600){
+    setTimeout(()=>painel.scrollIntoView({behavior:'smooth',block:'start'}),120);
+  }
+}
+
+function fecharCaixa(){
+  caixa.classList.remove('visivel');
+  document.querySelectorAll('.epi-card').forEach(card=>card.classList.remove('ativo'));
+}
+
+document.querySelectorAll('.epi-card').forEach(card=>{
+  card.addEventListener('click',event=>abrirEPI(event,card.dataset.epi));
+  card.addEventListener('keydown',event=>{
+    if(event.key==='Enter'||event.key===' '){
+      event.preventDefault();
+      abrirEPI({currentTarget:card},card.dataset.epi);
+    }
+  });
+});
+
+document.getElementById('btnFecharCaixa').addEventListener('click',event=>{
+  event.stopPropagation();
+  fecharCaixa();
+});
+
+document.querySelectorAll('.btn-topico').forEach(btn=>{
+  btn.addEventListener('click',()=>mostrarTopico(btn.dataset.topico));
+});
+
+document.addEventListener('click',event=>{
+  if(!event.target.closest('.epi-card')&&!event.target.closest('.caixa-descricao'))fecharCaixa();
+});
+
+document.addEventListener('keydown',event=>{
+  if(event.key==='Escape')fecharCaixa();
+});
+
+window.addEventListener('resize',()=>{
+  const card=document.querySelector('.epi-card.ativo');
+  if(card&&caixa.classList.contains('visivel'))posicionarCaixa(card);
+});
+</script>
+</body>
+</html>
